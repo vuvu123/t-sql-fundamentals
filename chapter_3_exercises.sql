@@ -54,7 +54,7 @@ LEFT JOIN Sales.Customers c ON o.custid = c.custid
 LEFT JOIN Sales.OrderDetails d ON o.orderid = d.orderid
 WHERE c.country = 'USA'
 GROUP BY o.custid
-ORDER BY custid
+ORDER BY o.custid
 
 -- Exercise 4: Return customers and their orders, including customers who placed no orders
 SELECT
@@ -101,6 +101,18 @@ SELECT
 FROM Sales.Customers c
 LEFT JOIN feb_12_2016_orders o ON c.custid = o.custid
 ORDER BY c.companyname
+
+-- More efficient solution - better than my original solution
+-- Read the book section about nonfinal matchin predicates
+SELECT
+	c.custid,
+	c.companyname,
+	o.orderid,
+	o.orderdate
+FROM Sales.Customers c
+LEFT JOIN Sales.Orders o ON c.custid = o.custid AND o.orderdate = '20160212'
+ORDER BY c.companyname
+
 
 /* Exercise 8: Explain why the following query isn’t a correct solution query for Exercise 7
 
