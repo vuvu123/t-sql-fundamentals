@@ -108,6 +108,9 @@ FROM emp_hierarchy;
 -- Exercise 5-1: Create a view that returns the total quantity for each employee and year
 GO
 
+USE TSQLV4;
+DROP VIEW IF EXISTS Sales.VEmpOrders;
+GO
 CREATE VIEW Sales.VEmpOrders AS
 SELECT
 	o.empid,
