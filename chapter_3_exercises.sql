@@ -113,7 +113,6 @@ FROM Sales.Customers c
 LEFT JOIN Sales.Orders o ON c.custid = o.custid AND o.orderdate = '20160212'
 ORDER BY c.companyname
 
-
 /* Exercise 8: Explain why the following query isn’t a correct solution query for Exercise 7
 
 SELECT C.custid, C.companyname, O.orderid, O.orderdate
