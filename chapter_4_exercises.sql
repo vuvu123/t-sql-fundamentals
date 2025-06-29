@@ -50,6 +50,20 @@ FROM Sales.Orders
 WHERE custid IN (SELECT custid FROM order_cnt_rnk WHERE rnk = 1)
 ORDER BY orderid;
 
+-- Alternate subquery solution
+SELECT
+	custid,
+	orderid,
+	orderdate,
+	empid
+FROM Sales.Orders
+WHERE custid IN (
+	SELECT TOP (1) WITH TIES O.custid
+	FROM Sales.Orders AS O
+	GROUP BY O.custid
+	ORDER BY COUNT(*) DESC
+) ORDER BY orderid;
+
 -- Exercise 3: Write a query that returns employees who did not place orders on or after May 1, 2016
 SELECT
 	empid,
@@ -78,7 +92,7 @@ SELECT
 	o1.orderdate,
 	o1.empid
 FROM Sales.Orders o1
-WHERE orderdate IN (
+WHERE orderdate = (
 	SELECT MAX(orderdate) 
 	FROM Sales.Orders o2 
 	WHERE o2.custid = o1.custid
@@ -97,7 +111,23 @@ WHERE c.custID IN (
 	FROM Sales.Orders
 	WHERE orderdate >= '2016-01-01' AND orderdate < '2017-01-01'
 )
-ORDER BY c.custid
+ORDER BY c.custid;
+
+-- Alternate solutions with EXISTS and NOT EXISTS
+SELECT c.custid, c.companyname
+FROM Sales.Customers C
+WHERE EXISTS (
+	SELECT *
+	FROM Sales.Orders o
+	WHERE o.custid = c.custid AND
+	o.orderdate >= '2015-01-01' AND orderdate < '2016-01-01'
+) AND NOT EXISTS (
+	SELECT *
+	FROM Sales.Orders o
+	WHERE o.custid = c.custid AND
+	o.orderdate >= '2016-01-01' AND orderdate < '2017-01-01'
+)
+ORDER BY c.custid;
 
 -- Exercise 7: Write a query that returns customers who ordered product 12
 SELECT DISTINCT
@@ -126,6 +156,15 @@ is compared to a NULL unless it's explicitly handled (IS NOT NULL).
 
 EXISTS checks whether subquery returns any rows. It ignores NULLs safely because it just checks if an row exists. 
 It is usually faster for larger datasets because it only checks for existence.
+
+Author explanation:
+Whereas the IN predicate uses three-valued logic, the EXISTS predicate uses two-valued logic. 
+When no NULLs are involved in the data, IN and EXISTS give you the same meaning in both their positive and negative forms (with NOT). 
+When NULLs are involved, IN and EXISTS give you the same meaning in their positive form but not in their negative form. 
+In the positive form, when looking for a value that appears in the set of known values in the subquery, both return TRUE, and when looking for a value that doesn’t appear in the set of known values, both return FALSE. 
+In the negative forms (with NOT), when looking for a value that appears in the set of known values, both return FALSE; 
+however, when looking for a value that doesn’t appear in the set of known values, NOT IN returns UNKNOWN (outer row is discarded), whereas NOT EXISTS returns TRUE (outer row returned).
+
 */
 
 -- Exercise 10: Write a query that returns for each order the number of days that passed since the same customer’s previous order. 
@@ -151,8 +190,8 @@ SELECT
 	DATEDIFF(
 		day, 
 		(SELECT MAX(o2.orderdate)
-		 FROM Sales.Orders o2
-		 WHERE o2.orderid < o1.orderid AND o2.custid = o1.custid),
-		 o1.orderdate) AS diff
+		FROM Sales.Orders o2
+		WHERE o2.orderid < o1.orderid AND o2.custid = o1.custid),
+		o1.orderdate) AS diff
 FROM Sales.Orders o1
 ORDER BY o1.custid, o1.orderdate
