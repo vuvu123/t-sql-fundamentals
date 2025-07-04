@@ -118,7 +118,6 @@ WITH UNION_ALL AS (
 )
 
 SELECT
-	source,
 	country,
 	region,
 	city
