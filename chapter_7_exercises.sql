@@ -69,6 +69,15 @@ FROM (
 ) AS T
 PIVOT(COUNT(orderyear) FOR orderyear IN([2014], [2015], [2016])) AS P;
 
+-- Pivot Grouping Book Solution - Using a table expression in the FROM clause to avoid repeating the YEAR(orderdate) expression
+SELECT empid,
+  COUNT(CASE WHEN orderyear = 2014 THEN orderyear END) AS cnt2014,
+  COUNT(CASE WHEN orderyear = 2015 THEN orderyear END) AS cnt2015,
+  COUNT(CASE WHEN orderyear = 2016 THEN orderyear END) AS cnt2016
+FROM (SELECT empid, YEAR(orderdate) AS orderyear
+      FROM dbo.Orders) AS D
+GROUP BY empid;
+
 -- Exercise 5: Write a query against the EmpYearOrders table that unpivots the data, returning a row for each employee and order year with the number of orders. 
 --			   Exclude rows in which the number of orders is 0 (in this example, employee 3 in the year 2015).
 SELECT * FROM dbo.EmpYearOrders;
