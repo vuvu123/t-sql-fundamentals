@@ -25,7 +25,7 @@ OUTPUT
   inserted.country,
   inserted.region,
   inserted.city
-VALUES(100, 'Coho Winery', 'USA', 'WA', 'Redmond');
+VALUES(100, N'Coho Winery', N'USA', N'WA', N'Redmond');
 
 SELECT *
 FROM dbo.Customers;
@@ -41,6 +41,20 @@ OUTPUT
 SELECT DISTINCT c.custid, c.companyname, c.country, c.region, c.city
 FROM Sales.Customers c
 INNER JOIN Sales.Orders o ON c.custid = o.custid;
+
+-- Alternate Solution: Using the EXISTS predicate in the WHERE clause (Recommended Standard SQL Solution)
+INSERT dbo.Customers(custid, companyname, country, region, city)
+OUTPUT
+  inserted.custid,
+  inserted.companyname,
+  inserted.country,
+  inserted.region,
+  inserted.city
+SELECT custid, companyname, country, region, city
+FROM Sales.Customers c
+WHERE EXISTS
+	(SELECT * FROM Sales.Orders o
+	WHERE c.custid = o.custid);
 
 -- Exercise 1-3: Use a SELECT INTO statement to create and populate the dbo.Orders table with orders from the Sales.Orders table that were placed in the years 2014 through 2016
 DROP TABLE IF EXISTS dbo.Orders;
@@ -77,11 +91,23 @@ OUTPUT
 WHERE orderdate < '20140801';
 
 -- Exercise 3: Delete from the dbo.Orders table orders placed by customers from Brazil.
+DELETE FROM o
+OUTPUT
+  deleted.orderid,
+  deleted.shipcountry
+FROM dbo.Orders o
+INNER JOIN dbo.Customers c ON o.custid = c.custid
+WHERE c.country = N'Brazil';
+
+-- Alternate Solution: Using the EXISTS predicate in the WHERE clause (Recommended Standard SQL Solution)
 DELETE FROM dbo.Orders
 OUTPUT
   deleted.orderid,
   deleted.shipcountry
-WHERE shipcountry = 'Brazil';
+WHERE EXISTS
+	(SELECT * FROM dbo.Customers c 
+	WHERE Orders.custid = c.custid AND c.country = N'Brazil');
+
 
 -- Exercise 4: Update the dbo.Customers table, and change all NULL region values to <None>. Use the OUTPUT clause to show the custid, oldregion, and newregion
 UPDATE dbo.Customers
@@ -95,7 +121,9 @@ WHERE region IS NULL;
 -- Exercise 5: Update all orders in the dbo.Orders table that were placed by United Kingdom customers, and set their shipcountry, shipregion, 
 --				and shipcity values to the country, region, and city values of the corresponding customers.
 UPDATE o
-SET o.shipcountry = c.country, o.shipregion = c.region, o.shipcity = c.city
+SET o.shipcountry = c.country, 
+	o.shipregion = c.region, 
+	o.shipcity = c.city
 OUTPUT
   inserted.orderid,
   inserted.custid,
@@ -108,7 +136,34 @@ OUTPUT
   inserted.shipcity AS newshipcity
 FROM dbo.Orders o
 INNER JOIN dbo.Customers c ON o.custid = c.custid
-WHERE shipcountry = 'UK';
+WHERE shipcountry = N'UK';
+
+-- CTE Update Alternative
+WITH CTE_UPD AS
+(
+  SELECT
+  O.shipcountry AS ocountry, 
+  C.country AS ccountry,
+  O.shipregion AS oregion,  
+  C.region AS cregion,
+  O.shipcity AS ocity,   
+  C.city AS ccity
+  FROM dbo.Orders AS O
+    INNER JOIN dbo.Customers AS C
+      ON O.custid = C.custid
+  WHERE C.country = N'UK'
+)
+UPDATE CTE_UPD
+SET ocountry = ccountry, oregion = cregion, ocity = ccity;
+
+-- Merge Update Alternative
+MERGE INTO dbo.Orders AS O
+USING (SELECT * FROM dbo.Customers WHERE country = N'UK') AS C
+  ON O.custid = C.custid
+WHEN MATCHED THEN
+  UPDATE SET shipcountry = C.country,
+             shipregion = C.region,
+             shipcity = C.city;
 
 -- Exercise 6: Write and test the T-SQL code that is required to truncate both tables, and make sure your code runs successfully.
 
